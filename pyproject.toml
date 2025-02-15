@@ -176,3 +176,14 @@ version = ">=0.4.7,<0.10.0"
 [tool.poetry.dependencies.validate-pyproject]
 optional = true
 version = ">=0.15,<0.24"
+
+[tool.poetry.plugins.darwin-import-parsers]
+coco = "darwin.importer.formats.coco:parse_path"
+dataloop = "darwin.importer.formats.dataloop:parse_path"
+csv_tags = "darwin.importer.formats.csv_tags:parse_path"
+csv_tags_video = "darwin.importer.formats.csv_tags_video:parse_path"
+darwin = "darwin.importer.formats.darwin:parse_path"
+labelbox = "darwin.importer.formats.labelbox:parse_path"
+pascal_voc = "darwin.importer.formats.pascal_voc:parse_path"
+superannotate = "darwin.importer.formats.superannotate:parse_path"
+nifti = "darwin.importer.formats.nifti:parse_path"

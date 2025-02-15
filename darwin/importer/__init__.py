@@ -1,17 +1,15 @@
-from importlib import import_module
-
 from darwin.datatypes import ImportParser
 
 from .importer import import_annotations  # noqa
 
+from importlib.metadata import entry_points
 
 class ImporterNotFoundError(ModuleNotFoundError):
     pass
 
 
 def get_importer(format: str) -> ImportParser:
-    try:
-        module = import_module(f"darwin.importer.formats.{format}")
-        return getattr(module, "parse_path")
-    except ModuleNotFoundError:
-        raise ImporterNotFoundError
+    parsers = entry_points(group="darwin-import-parsers")
+    if format not in parsers.names:
+        raise ImporterNotFoundError(f"Unsupported import format: {format}, currently supported: {parsers.names}")
+    return parsers[format].load()
