@@ -953,10 +953,8 @@ def dataset_import(
             cpu_limit,
         )
 
-    except ImporterNotFoundError:
-        _error(
-            f"Unsupported import format: {format}, currently supported: {import_formats}"
-        )
+    except ImporterNotFoundError as e:
+        _error(str(e))
     except AttributeError as e:
         _error(f"Internal problem with import occured: {str(e)}")
     except NotFound as e:
