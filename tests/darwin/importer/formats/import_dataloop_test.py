@@ -14,8 +14,9 @@ from darwin.exceptions import (
 from darwin.importer.formats.dataloop import (
     _parse_annotation,
     _remove_leading_slash,
-    parse_path,
+    Parser
 )
+parse_path = Parser.parse_path
 
 
 class DataLoopTestCase(TestCase):

@@ -18,78 +18,82 @@ from darwin.datatypes import (
 )
 from darwin.importer.formats.labelbox_schemas import labelbox_export
 from darwin.utils import attempt_decode
+from .base import BaseImportParser
 
 
-def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
-    """
-    Parses the given LabelBox file and maybe returns the corresponding annotations.
-    The file must have a structure similar to the following:
+class Parser(BaseImportParser):
 
-    .. code-block:: javascript
+    @staticmethod
+    def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
+        """
+        Parses the given LabelBox file and maybe returns the corresponding annotations.
+        The file must have a structure similar to the following:
 
-        [
-            {
-                "Label":{
-                    "objects":[
-                        {
-                            "title": "SomeTitle",
-                            "bbox":{"top":3558, "left":145, "height":623, "width":449}
-                        },
-                        { }
-                    ],
-                    "classifications": [
-                        {
-                            "value": "a_question",
-                            "answer": {"value": "an_answer"}
-                        }
-                    ]
+        .. code-block:: javascript
+
+            [
+                {
+                    "Label":{
+                        "objects":[
+                            {
+                                "title": "SomeTitle",
+                                "bbox":{"top":3558, "left":145, "height":623, "width":449}
+                            },
+                            { }
+                        ],
+                        "classifications": [
+                            {
+                                "value": "a_question",
+                                "answer": {"value": "an_answer"}
+                            }
+                        ]
+                    },
+                    "External ID": "demo-image-7.jpg"
                 },
-                "External ID": "demo-image-7.jpg"
-            },
-            { }
-        ]
+                { }
+            ]
 
-    You can check the Labelbox Schemas in `labelbox_schemas.py`.
+        You can check the Labelbox Schemas in `labelbox_schemas.py`.
 
-    Currently we support the following annotations:
+        Currently we support the following annotations:
 
-        - bounding-box ``Image``: https://docs.labelbox.com/docs/bounding-box-json
-        - polygon ``Image``: https://docs.labelbox.com/docs/polygon-json
-        - point ``Image``: https://docs.labelbox.com/docs/point-json
-        - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
+            - bounding-box ``Image``: https://docs.labelbox.com/docs/bounding-box-json
+            - polygon ``Image``: https://docs.labelbox.com/docs/polygon-json
+            - point ``Image``: https://docs.labelbox.com/docs/point-json
+            - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
 
-    We also support conversion from question/answer to Annotation Tags for the following:
+        We also support conversion from question/answer to Annotation Tags for the following:
 
-        - Radio Buttons
-        - Checklists
-        - Free Text
+            - Radio Buttons
+            - Checklists
+            - Free Text
 
-    Parameters
-    --------
-    path: Path
-        The path of the file to parse.
+        Parameters
+        --------
+        path: Path
+            The path of the file to parse.
 
-    Returns
-    -------
-    Optional[List[darwin.datatypes.AnnotationFile]]
-        The AnnotationFiles with the parsed information from the file or None, if the file is not a
-        `json` file.
+        Returns
+        -------
+        Optional[List[darwin.datatypes.AnnotationFile]]
+            The AnnotationFiles with the parsed information from the file or None, if the file is not a
+            `json` file.
 
-    Raises
-    ------
-    ValidationError
-        If the given JSON file is malformed or if it has an unknown annotation.
-        To see a list of possible annotation formats go to:
-        https://docs.labelbox.com/docs/annotation-types-1
+        Raises
+        ------
+        ValidationError
+            If the given JSON file is malformed or if it has an unknown annotation.
+            To see a list of possible annotation formats go to:
+            https://docs.labelbox.com/docs/annotation-types-1
 
-    """
-    if path.suffix != ".json":
-        return None
-    data = attempt_decode(path)
-    validate(data, schema=labelbox_export)
-    convert_with_path = partial(_convert, path=path)
+        """
+        if path.suffix != ".json":
+            return None
+        data = attempt_decode(path)
+        validate(data, schema=labelbox_export)
+        convert_with_path = partial(_convert, path=path)
 
-    return _map_list(convert_with_path, data)
+        return _map_list(convert_with_path, data)
 
 
 def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:

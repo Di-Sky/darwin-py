@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from rich.console import Console
 
 from darwin.utils import attempt_decode
+from .base import BaseImportParser
 
 console = Console()
 try:
@@ -29,70 +30,73 @@ import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
 
 
-def parse_path(
-    path: Path,
-    remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
-) -> Optional[List[dt.AnnotationFile]]:
-    """
-    Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
-    information.
+class Parser(BaseImportParser):
 
-    Parameters
-    ----------
-    path : Path
-        The ``Path`` to the ``nifti`` file.
-    remote_files_that_require_legacy_scaling : Optional[Dict[Path, Dict[str, Any]]]
-        A dictionary of remote file full paths to their slot affine maps
+    @staticmethod
+    def parse_path(
+        path: Path,
+        remote_files_that_require_legacy_scaling: Dict[Path, Dict[str, Any]] = {},
+    ) -> Optional[List[dt.AnnotationFile]]:
+        """
+        Parses the given ``nifti`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
+        information.
 
-    Returns
-    -------
-    Optional[List[dt.AnnotationFile]]
-        Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
-        otherwise.
-    """
-    if not isinstance(path, Path):
-        path = Path(path)
-    if path.suffix != ".json":
-        console.print(
-            "Skipping file: {} (not a json file)".format(path), style="bold yellow"
-        )
-        return None
-    data = attempt_decode(path)
-    try:
-        validate(data, schema=nifti_import_schema)
-    except Exception:
-        console.print(
-            "Skipping file: {} (invalid json file, see schema for details)".format(
-                path
-            ),
-            style="bold yellow",
-        )
-        return None
-    nifti_annotations = data.get("data")
-    if nifti_annotations is None or nifti_annotations == []:
-        console.print(
-            "Skipping file: {} (no data found)".format(path), style="bold yellow"
-        )
-        return None
-    annotation_files = []
-    for nifti_annotation in nifti_annotations:
-        remote_file_path = Path(nifti_annotation["image"])
-        if not str(remote_file_path).startswith("/"):
-            remote_file_path = Path("/" + str(remote_file_path))
+        Parameters
+        ----------
+        path : Path
+            The ``Path`` to the ``nifti`` file.
+        remote_files_that_require_legacy_scaling : Optional[Dict[Path, Dict[str, Any]]]
+            A dictionary of remote file full paths to their slot affine maps
 
-        annotation_file = _parse_nifti(
-            Path(nifti_annotation["label"]),
-            Path(nifti_annotation["image"]),
-            path,
-            class_map=nifti_annotation.get("class_map"),
-            mode=nifti_annotation.get("mode", "image"),
-            slot_names=nifti_annotation.get("slot_names", []),
-            is_mpr=nifti_annotation.get("is_mpr", False),
-            remote_file_path=remote_file_path,
-            remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
-        )
-        annotation_files.append(annotation_file)
-    return annotation_files
+        Returns
+        -------
+        Optional[List[dt.AnnotationFile]]
+            Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
+            otherwise.
+        """
+        if not isinstance(path, Path):
+            path = Path(path)
+        if path.suffix != ".json":
+            console.print(
+                "Skipping file: {} (not a json file)".format(path), style="bold yellow"
+            )
+            return None
+        data = attempt_decode(path)
+        try:
+            validate(data, schema=nifti_import_schema)
+        except Exception:
+            console.print(
+                "Skipping file: {} (invalid json file, see schema for details)".format(
+                    path
+                ),
+                style="bold yellow",
+            )
+            return None
+        nifti_annotations = data.get("data")
+        if nifti_annotations is None or nifti_annotations == []:
+            console.print(
+                "Skipping file: {} (no data found)".format(path), style="bold yellow"
+            )
+            return None
+        annotation_files = []
+        for nifti_annotation in nifti_annotations:
+            remote_file_path = Path(nifti_annotation["image"])
+            if not str(remote_file_path).startswith("/"):
+                remote_file_path = Path("/" + str(remote_file_path))
+
+            annotation_file = _parse_nifti(
+                Path(nifti_annotation["label"]),
+                Path(nifti_annotation["image"]),
+                path,
+                class_map=nifti_annotation.get("class_map"),
+                mode=nifti_annotation.get("mode", "image"),
+                slot_names=nifti_annotation.get("slot_names", []),
+                is_mpr=nifti_annotation.get("is_mpr", False),
+                remote_file_path=remote_file_path,
+                remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,
+            )
+            annotation_files.append(annotation_file)
+        return annotation_files
 
 
 def _parse_nifti(

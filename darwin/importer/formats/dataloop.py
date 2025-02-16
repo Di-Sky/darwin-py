@@ -7,40 +7,44 @@ from darwin.exceptions import (
     UnsupportedImportAnnotationType,
 )
 from darwin.utils import attempt_decode
+from .base import BaseImportParser
 
 
-def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
-    """
-    Parses the given ``dataloop`` file and returns the corresponding darwin ``AnnotationFile``, or
-    ``None`` if the file's extension is not ``.json``.
+class Parser(BaseImportParser):
 
-    Parameters
-    ----------
-    path : Path
-        The ``Path`` of the file to parse.
+    @staticmethod
+    def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
+        """
+        Parses the given ``dataloop`` file and returns the corresponding darwin ``AnnotationFile``, or
+        ``None`` if the file's extension is not ``.json``.
 
-    Returns
-    -------
-    Optional[dt.AnnotationFile]
-        The corresponding ``AnnotationFile``, or ``None`` if the given file was not parseable.
+        Parameters
+        ----------
+        path : Path
+            The ``Path`` of the file to parse.
 
-    """
-    if path.suffix != ".json":
-        return None
-    data = attempt_decode(path)
-    annotations: List[dt.Annotation] = list(
-        filter(None, map(_parse_annotation, data["annotations"]))
-    )
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
-    return dt.AnnotationFile(
-        path,
-        _remove_leading_slash(data["filename"]),
-        annotation_classes,
-        annotations,
-        remote_path="/",
-    )
+        Returns
+        -------
+        Optional[dt.AnnotationFile]
+            The corresponding ``AnnotationFile``, or ``None`` if the given file was not parseable.
+
+        """
+        if path.suffix != ".json":
+            return None
+        data = attempt_decode(path)
+        annotations: List[dt.Annotation] = list(
+            filter(None, map(_parse_annotation, data["annotations"]))
+        )
+        annotation_classes: Set[dt.AnnotationClass] = {
+            annotation.annotation_class for annotation in annotations
+        }
+        return dt.AnnotationFile(
+            path,
+            _remove_leading_slash(data["filename"]),
+            annotation_classes,
+            annotations,
+            remote_path="/",
+        )
 
 
 def _remove_leading_slash(filename: str) -> str:

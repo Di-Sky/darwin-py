@@ -4,7 +4,8 @@ from typing import cast
 import pytest
 
 from darwin.datatypes import Annotation
-from darwin.importer.formats.pascal_voc import parse_path
+from darwin.importer.formats.pascal_voc import Parser
+parse_path = Parser.parse_path
 
 
 class TestParsePath:

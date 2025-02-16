@@ -18,7 +18,10 @@ from darwin.datatypes import (
     SubAnnotation,
     VideoAnnotation,
 )
-from darwin.importer.formats.nifti import get_new_axial_size, parse_path, process_nifti
+from darwin.importer.formats.nifti import get_new_axial_size, process_nifti
+from darwin.importer.formats.nifti import Parser
+parse_path = Parser.parse_path
+
 from tests.fixtures import *
 from darwin.utils.utils import parse_darwin_json
 

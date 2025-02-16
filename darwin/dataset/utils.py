@@ -14,7 +14,8 @@ import darwin.datatypes as dt
 
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
-from darwin.importer.formats.darwin import parse_path
+from darwin.importer.formats.darwin import Parser
+parse_path = Parser.parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_IMAGE_EXTENSIONS,

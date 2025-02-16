@@ -11,7 +11,8 @@ from darwin.datatypes import (
     Point,
     SubAnnotation,
 )
-from darwin.importer.formats.labelbox import parse_path
+from darwin.importer.formats.labelbox import Parser
+parse_path = Parser.parse_path
 
 
 class TestParsePath:

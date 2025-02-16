@@ -170,7 +170,7 @@ def parse_expected_and_actual_annotations(
     """
     importer_module = importlib.import_module(
         f"darwin.importer.formats.{annotation_format}"
-    )
+    ).Parser
     expected_annotation_data = importer_module.parse_path(
         Path(expected_annotation_files[expected_filename])
     )

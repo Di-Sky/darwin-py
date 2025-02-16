@@ -5,8 +5,8 @@ from typing import List, Optional
 import pytest
 
 from darwin.datatypes import AnnotationFile
-from darwin.importer.formats.csv_tags import parse_path
-
+from darwin.importer.formats.csv_tags import Parser
+parse_path = Parser.parse_path
 
 class TestParsePath:
     @pytest.fixture

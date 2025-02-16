@@ -5,8 +5,8 @@ from typing import List, Optional
 import pytest
 
 import darwin.datatypes as dt
-from darwin.importer.formats.csv_tags_video import parse_path
-
+from darwin.importer.formats.csv_tags_video import Parser
+parse_path = Parser.parse_path
 
 class TestParsePathVideo:
     @pytest.fixture

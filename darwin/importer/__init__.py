@@ -12,6 +12,6 @@ class ImporterNotFoundError(ModuleNotFoundError):
 def get_importer(format: str) -> ImportParser:
     try:
         module = import_module(f"darwin.importer.formats.{format}")
-        return getattr(module, "parse_path")
+        return getattr(module, "Parser").parse_path
     except ModuleNotFoundError:
         raise ImporterNotFoundError

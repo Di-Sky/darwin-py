@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, ca
 import orjson as json
 from jsonschema import validate
 
+from .base import BaseImportParser
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
@@ -31,94 +32,97 @@ from darwin.utils import attempt_decode
 AttributeGroup = Dict[str, Union[str, int]]
 
 
-def parse_path(path: Path) -> Optional[AnnotationFile]:
-    """
-    Parses SuperAnnotate annotations inside the given file and returns the corresponding Darwin JSON
-    annotations. If the given file is not a ``.json`` or is a ``classes.json`` then ``None`` is
-    returned instead.
+class Parser(BaseImportParser):
 
-    Each annotation file must have a structure similar to the following:
+    @staticmethod
+    def parse_path(path: Path) -> Optional[AnnotationFile]:
+        """
+        Parses SuperAnnotate annotations inside the given file and returns the corresponding Darwin JSON
+        annotations. If the given file is not a ``.json`` or is a ``classes.json`` then ``None`` is
+        returned instead.
 
-    .. code-block:: javascript
+        Each annotation file must have a structure similar to the following:
 
-        {
-            "instances": [
-                {
-                    "classId": 1,
-                    "attributes": [],
-                    "type": "point",
-                    "x": 1,
-                    "y": 0
-                },
-                // { ... }
-            ],
-            "tags": ["a_tag_here"],
-            "metadata": {
-                "name": "a_file_name.json"
+        .. code-block:: javascript
+
+            {
+                "instances": [
+                    {
+                        "classId": 1,
+                        "attributes": [],
+                        "type": "point",
+                        "x": 1,
+                        "y": 0
+                    },
+                    // { ... }
+                ],
+                "tags": ["a_tag_here"],
+                "metadata": {
+                    "name": "a_file_name.json"
+                }
             }
-        }
 
-    Currently we support the following annotations:
+        Currently we support the following annotations:
 
-        - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
-        - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
-        - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
-        - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box
-        - polygon and polyline ``Vector``\\s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
+            - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
+            - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
+            - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
+            - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box
+            - polygon and polyline ``Vector``\\s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
 
-    We also support attributes and tags.
+        We also support attributes and tags.
 
-    Each file must also have in the same folder a ``classes.json`` file with information about
-    the classes. This file must have a structure similar to:
+        Each file must also have in the same folder a ``classes.json`` file with information about
+        the classes. This file must have a structure similar to:
 
-    .. code-block:: javascript
+        .. code-block:: javascript
 
-        [
-            {"name": "a_name_here", "id": 1, "attribute_groups": []},
-            // { ... }
-        ]
+            [
+                {"name": "a_name_here", "id": 1, "attribute_groups": []},
+                // { ... }
+            ]
 
-    You can check the SuperAnnotate Schemas in ``superannotate_schemas.py``.
+        You can check the SuperAnnotate Schemas in ``superannotate_schemas.py``.
 
-    Parameters
-    --------
-    path: Path
-        The path of the file to parse.
+        Parameters
+        --------
+        path: Path
+            The path of the file to parse.
 
-    Returns
-    -------
-    Optional[darwin.datatypes.AnnotationFile]
-        The AnnotationFile with the parsed information from each SuperAnnotate annotation inside
-        or ``None`` if the given file is not a ``.json`` or is ``classes.json``.
+        Returns
+        -------
+        Optional[darwin.datatypes.AnnotationFile]
+            The AnnotationFile with the parsed information from each SuperAnnotate annotation inside
+            or ``None`` if the given file is not a ``.json`` or is ``classes.json``.
 
-    Raises
-    ------
-    ValidationError
-        If any given JSON file is malformed or if it has an unknown annotation.
-        To see a list of possible annotation formats go to:
-        https://doc.superannotate.com/docs/vector-json
-    """
+        Raises
+        ------
+        ValidationError
+            If any given JSON file is malformed or if it has an unknown annotation.
+            To see a list of possible annotation formats go to:
+            https://doc.superannotate.com/docs/vector-json
+        """
 
-    if not _is_annotation(path):
-        return None
+        if not _is_annotation(path):
+            return None
 
-    classes_path = path.parent / "classes.json"
-    if not classes_path.is_file():
-        raise ValueError(
-            "Folder must contain a 'classes.json' file with classes information."
-        )
+        classes_path = path.parent / "classes.json"
+        if not classes_path.is_file():
+            raise ValueError(
+                "Folder must contain a 'classes.json' file with classes information."
+            )
 
-    with classes_path.open(encoding="utf-8") as classes_file:
-        classes = json.loads(classes_file.read())
-        validate(classes, schema=classes_export)
-    data = attempt_decode(path)
-    validate(data, schema=superannotate_export)
+        with classes_path.open(encoding="utf-8") as classes_file:
+            classes = json.loads(classes_file.read())
+            validate(classes, schema=classes_export)
+        data = attempt_decode(path)
+        validate(data, schema=superannotate_export)
 
-    instances: List[Dict[str, Any]] = data.get("instances")
-    metadata: Dict[str, Any] = data.get("metadata")
-    tags: List[str] = data.get("tags")
+        instances: List[Dict[str, Any]] = data.get("instances", [])
+        metadata: Dict[str, Any] = data.get("metadata", {})
+        tags: List[str] = data.get("tags", [])
 
-    return _convert(instances, path, classes, metadata, tags)
+        return _convert(instances, path, classes, metadata, tags)
 
 
 def _convert(

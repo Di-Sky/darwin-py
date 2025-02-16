@@ -2,67 +2,71 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
 
+from .base import BaseImportParser
 import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 
 
-def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
-    """
-    Parses the given pascalvoc file and maybe returns the corresponding annotation.
-    The file must have the following structure:
+class Parser(BaseImportParser):
 
-    .. code-block:: xml
+    @staticmethod
+    def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
+        """
+        Parses the given pascalvoc file and maybe returns the corresponding annotation.
+        The file must have the following structure:
 
-        <filename>SOME_FILE_NAME</filename>
-        <object>
-            <name>CLASS_NAME</name>
-            <bndbox>
-                <xmax>NUMBER</xmax>
-                <xmin>NUMBER</xmin>
-                <ymax>NUMBER</ymax>
-                <ymin>NUMBER</ymin>
-            </bndbox>
-        </object>
-        <object>
-            ...
-        </object>
+        .. code-block:: xml
 
-    Parameters
-    --------
-    path: Path
-        The path of the file to parse.
+            <filename>SOME_FILE_NAME</filename>
+            <object>
+                <name>CLASS_NAME</name>
+                <bndbox>
+                    <xmax>NUMBER</xmax>
+                    <xmin>NUMBER</xmin>
+                    <ymax>NUMBER</ymax>
+                    <ymin>NUMBER</ymin>
+                </bndbox>
+            </object>
+            <object>
+                ...
+            </object>
 
-    Returns
-    -------
-    Optional[darwin.datatypes.AnnotationFile]
-        An AnnotationFile with the parsed information from the file or None, if the file is not a
-        `XML` file.
+        Parameters
+        --------
+        path: Path
+            The path of the file to parse.
 
-    Raises
-    ------
-    ValueError
-        If a mandatory child element is missing or is empty. Mandatory child elements are:
-        filename, name, bndbox, xmin, xmax, ymin and ymax.
+        Returns
+        -------
+        Optional[darwin.datatypes.AnnotationFile]
+            An AnnotationFile with the parsed information from the file or None, if the file is not a
+            `XML` file.
 
-    """
-    if path.suffix != ".xml":
-        return None
+        Raises
+        ------
+        ValueError
+            If a mandatory child element is missing or is empty. Mandatory child elements are:
+            filename, name, bndbox, xmin, xmax, ymin and ymax.
 
-    tree = ET.parse(str(path))
-    root = tree.getroot()
+        """
+        if path.suffix != ".xml":
+            return None
 
-    filename = _find_text_value(root, "filename")
+        tree = ET.parse(str(path))
+        root = tree.getroot()
 
-    annotations: List[dt.Annotation] = list(
-        filter(None, map(_parse_annotation, root.findall("object")))
-    )
-    annotation_classes = {annotation.annotation_class for annotation in annotations}
+        filename = _find_text_value(root, "filename")
 
-    remote_path, filename = deconstruct_full_path(filename)
+        annotations: List[dt.Annotation] = list(
+            filter(None, map(_parse_annotation, root.findall("object")))
+        )
+        annotation_classes = {annotation.annotation_class for annotation in annotations}
 
-    return dt.AnnotationFile(
-        path, filename, annotation_classes, annotations, remote_path=remote_path
-    )
+        remote_path, filename = deconstruct_full_path(filename)
+
+        return dt.AnnotationFile(
+            path, filename, annotation_classes, annotations, remote_path=remote_path
+        )
 
 
 def _parse_annotation(annotation_object: ET.Element) -> dt.Annotation:

@@ -13,7 +13,8 @@ from darwin.datatypes import (
     Point,
     SubAnnotation,
 )
-from darwin.importer.formats.superannotate import parse_path
+from darwin.importer.formats.superannotate import Parser
+parse_path = Parser.parse_path
 
 
 class TestParsePath:

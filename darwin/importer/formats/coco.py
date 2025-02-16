@@ -8,6 +8,7 @@ from upolygon import find_contours, rle_decode
 import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 from darwin.utils import attempt_decode
+from .base import BaseImportParser
 
 DEPRECATION_MESSAGE = """
 
@@ -20,26 +21,29 @@ instead of calling this low-level function directly.
 logger = getLogger(__name__)
 
 
-def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
-    """
-    Parses the given ``coco`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
-    information.
+class Parser(BaseImportParser):
 
-    Parameters
-    ----------
-    path : Path
-        The ``Path`` to the ``coco`` file.
+    @staticmethod
+    def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+        """
+        Parses the given ``coco`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
+        information.
 
-    Returns
-    -------
-    Optional[List[dt.AnnotationFile]]
-        Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
-        otherwise.
-    """
-    if path.suffix != ".json":
-        return None
-    data = attempt_decode(path)
-    return list(parse_json(path, data))
+        Parameters
+        ----------
+        path : Path
+            The ``Path`` to the ``coco`` file.
+
+        Returns
+        -------
+        Optional[List[dt.AnnotationFile]]
+            Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
+            otherwise.
+        """
+        if path.suffix != ".json":
+            return None
+        data = attempt_decode(path)
+        return list(parse_json(path, data))
 
 
 def parse_json(

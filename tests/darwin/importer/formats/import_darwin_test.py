@@ -4,8 +4,8 @@ from typing import Optional
 import pytest
 
 from darwin.datatypes import AnnotationFile
-from darwin.importer.formats.darwin import parse_path
-
+from darwin.importer.formats.darwin import Parser
+parse_path = Parser.parse_path
 
 class TestParsePath:
     @pytest.fixture
