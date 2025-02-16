@@ -37,6 +37,8 @@ from darwin.future.data_objects.properties import (
 )
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
+from darwin.utils.parallel import parallel_map
+from darwin.utils.timing_logger import MaybeConsole
 from darwin.utils.utils import _parse_annotators
 
 Unknown = Any  # type: ignore
@@ -57,13 +59,6 @@ from darwin.utils import secure_continue_request
 from darwin.utils.flatten_list import flatten_list
 
 logger = getLogger(__name__)
-
-try:
-    from mpire import WorkerPool
-
-    MPIRE_AVAILABLE = True
-except ImportError:
-    MPIRE_AVAILABLE = False
 
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
@@ -118,80 +113,42 @@ def _find_and_parse(  # noqa: C901
     use_multi_cpu: bool = True,
     cpu_limit: int = 1,
     remote_files_that_require_legacy_scaling: Optional[List[Path]] = None,
-) -> Optional[Iterable[dt.AnnotationFile]]:
-    is_console = console is not None
+) -> Optional[List[dt.AnnotationFile]]:
 
-    logger = getLogger(__name__)
-
-    def perf_time(reset: bool = False) -> Generator[float, float, None]:
-        start = perf_counter()
-        yield start
-        while True:
-            if reset:
-                start = perf_counter()
-            yield perf_counter() - start
-
-    def maybe_console(*args: Union[str, int, float]) -> None:
-        if console is not None:
-            console.print(*[f"[{str(next(perf_time()))} seconds elapsed]", *args])
-        else:
-            logger.info(*[f"[{str(next(perf_time()))}]", *args])
+    maybe_console = MaybeConsole(logger, console)
 
     maybe_console("Parsing files... ")
 
-    files: List[Path] = _get_files_for_parsing(file_paths)
+    files: List[Path] = _get_files_for_parsing(file_paths) 
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu and MPIRE_AVAILABLE and cpu_limit > 1:
-        maybe_console(f"Using multiprocessing with {cpu_limit} workers")
-        try:
-            with WorkerPool(cpu_limit) as pool:
-                if importer.__module__ == "darwin.importer.formats.nifti":
-                    parsed_files = pool.map(
-                        lambda file: importer(
-                            file,
-                            remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,  # type: ignore
-                        ),
-                        tqdm(files),
-                    )
-                else:
-                    parsed_files = pool.map(
-                        importer, tqdm(files) if is_console else files
-                    )
-        except KeyboardInterrupt:
-            maybe_console("Keyboard interrupt. Stopping.")
-            return None
-        except Exception as e:
-            maybe_console(f"Error: {e}")
-            return None
+    additional_args = {}
+    if importer.__module__ == "darwin.importer.formats.nifti":
+        additional_args["remote_files_that_require_legacy_scaling"] = \
+                            remote_files_that_require_legacy_scaling
+    
+    maybe_console(f"Using multiprocessing with {cpu_limit} workers" \
+                  if use_multi_cpu and cpu_limit > 1 else \
+                  "Using single CPU")
 
-    else:
-        maybe_console("Using single CPU")
-        if importer.__module__ == "darwin.importer.formats.nifti":
-            parsed_files = [
-                importer(
-                    file,
-                    remote_files_that_require_legacy_scaling=remote_files_that_require_legacy_scaling,  # type: ignore
-                )
-                for file in tqdm(files)
-            ]
-        else:
-            parsed_files = [
-                importer(file) for file in (tqdm(files) if is_console else files)
-            ]
-    parsed_files = [f for f in parsed_files if f is not None]
+    try:
+        parsed_files = parallel_map(
+            lambda file: importer(
+                file,
+                **additional_args
+            ),
+            tqdm(files),
+            n_workers=cpu_limit if use_multi_cpu else 1,
+        )
+    except KeyboardInterrupt:
+        maybe_console("Keyboard interrupt. Stopping.")
+        return None
+    except Exception as e:
+        maybe_console(f"Error: {e}")
+        return None
 
-    maybe_console("Finished.")
-    # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
-    # We flatten the list of lists
-    if isinstance(parsed_files, list):
-        if isinstance(parsed_files[0], list):
-            parsed_files = [item for sublist in parsed_files for item in sublist]
-    else:
-        parsed_files = [parsed_files]
-
-    parsed_files = [f for f in parsed_files if f is not None]
+    parsed_files = flatten_list(list(filter(lambda x: x is not None, parsed_files)))
     return parsed_files
 
 

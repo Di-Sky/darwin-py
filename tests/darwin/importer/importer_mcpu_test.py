@@ -95,7 +95,7 @@ class Test_find_and_parse(TestCaseImporter):
 
     @patch("darwin.importer.importer._get_multi_cpu_settings")
     @patch("darwin.importer.importer._get_files_for_parsing")
-    @patch("darwin.importer.importer.WorkerPool")
+    @patch("darwin.utils.parallel.WorkerPool")
     def test_uses_mpire_if_use_multi_cpu_true(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:
@@ -134,7 +134,7 @@ class Test_find_and_parse(TestCaseImporter):
         self.assertEqual(result, ["1", "2"])
 
     @patch("darwin.importer.importer._get_files_for_parsing")
-    @patch("darwin.importer.importer.WorkerPool")
+    @patch("darwin.utils.parallel.WorkerPool")
     def test_runs_single_threaded_if_use_multi_cpu_false(
         self, mock_wp: MagicMock, mock_gffp: MagicMock
     ) -> None:
@@ -159,7 +159,7 @@ class Test_find_and_parse(TestCaseImporter):
 
     @patch("darwin.importer.importer._get_multi_cpu_settings")
     @patch("darwin.importer.importer._get_files_for_parsing")
-    @patch("darwin.importer.importer.WorkerPool")
+    @patch("darwin.utils.parallel.WorkerPool")
     def test_returns_list_if_solo_value(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:
@@ -199,7 +199,7 @@ class Test_find_and_parse(TestCaseImporter):
 
     @patch("darwin.importer.importer._get_multi_cpu_settings")
     @patch("darwin.importer.importer._get_files_for_parsing")
-    @patch("darwin.importer.importer.WorkerPool")
+    @patch("darwin.utils.parallel.WorkerPool")
     def test_returns_none_if_pool_raises_error(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:

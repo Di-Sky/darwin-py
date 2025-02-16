@@ -179,20 +179,48 @@ def test__build_main_annotations_lookup_table() -> None:
     assert result == expected_lookup
 
 
-def test__find_and_parse():
-    """
-    Ensure that the function doesn't return any None values.
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with ZipFile("tests/data.zip") as zfile:
-            zfile.extractall(tmpdir)
-            annotations_path = Path(tmpdir) / "v7-darwin-json-v2" / "_find_and_parse"
-            importer = get_importer("coco")
-            files = _find_and_parse(
-                importer=importer,
-                file_paths=[annotations_path],
-            )
-            assert all(isinstance(file, dt.AnnotationFile) for file in files)
+def test__find_and_parse() -> None:
+    """Tests that _find_and_parse correctly processes files with the importer"""
+    single_annotation_file = dt.AnnotationFile(
+        path=Path("test1.json"),
+        filename="test1.json",
+        annotation_classes=set(),
+        annotations=[]
+    )
+    list_of_annotation_files = [
+        dt.AnnotationFile(
+            path=Path("test2_1.json"),
+            filename="test2_1.json",
+            annotation_classes=set(),
+            annotations=[]
+        ),
+        dt.AnnotationFile(
+            path=Path("test2_2.json"),
+            filename="test2_2.json",
+            annotation_classes=set(),
+            annotations=[]
+        )
+    ]
+    mock_importer = Mock(side_effect=[single_annotation_file, None, list_of_annotation_files, None])
+    
+    with patch("darwin.importer.importer._get_files_for_parsing") as mock_get_files:
+        mock_get_files.return_value = [
+            Path("test1.json"),
+            Path("test2.json"),
+            Path("test3.json"),
+            Path("test4.json"),
+        ]
+        
+        files = _find_and_parse(
+            importer=mock_importer,
+            file_paths=[Path("example_dir")],
+        )
+        
+        assert files is not None
+        result_files = list(files)
+        assert len(result_files) == 3  # 1 from single + 2 from list and None's are filtered out
+        assert all(isinstance(file, dt.AnnotationFile) for file in result_files)
+        assert mock_importer.call_count == 4
 
 
 def test__build_attribute_lookup() -> None:
